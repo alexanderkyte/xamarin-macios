@@ -552,6 +552,7 @@ Copyright (C) 2014 Xamarin. All rights reserved.
 			SdkVersion="$(MacOSXSdkVersion)"
 			IsAppExtension="$(IsAppExtension)"
 			EnableSGenConc="$(EnableSGenConc)"
+			EnableDedup="$(EnableDedup)"
 			AotScope="$(AotScope)"
 			HybridAotOption="$(HybridAotOption)"
 			ExplicitAotAssemblies="$(ExplicitAotAssemblies)">
