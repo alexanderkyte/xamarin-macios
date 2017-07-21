@@ -61,6 +61,9 @@ namespace Xamarin.Mac.Tasks
 		[Required]
 		public bool EnableSGenConc { get; set; }
 
+		[Required]
+		public bool EnableDedup { get; set; }
+
 		public bool UseXamMacFullFramework { get; set; }
 
 		public string ApplicationName { get; set; }

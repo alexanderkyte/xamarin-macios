@@ -312,6 +312,23 @@ namespace Xamarin.Bundler
 			}
 
 			try {
+				// Need a "container" AOT module for everything deduped
+				if (EnableDedup) {
+					DedupDummyDll = String.Format ("{0}.dll", DedupDummyName);
+
+					AssemblyName aName = new AssemblyName (DedupDummyName);
+					AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, AssemblyBuilderAccess.RunAndSave, this.ArchDirectory);
+
+					// Make .dll file
+					ab.Save (DedupDummyDll);
+
+					// Add to list
+					var ad = ManifestResolver.Load (Path.Combine (this.ArchDirectory, DedupDummyDll));
+					var asm = new Assembly (this, ad);
+					asm.ComputeSatellites ();
+					this.Assemblies.Add (asm);
+				}
+					
 				foreach (var root in App.RootAssemblies) {
 					var assembly = ManifestResolver.Load (root);
 					ComputeListOfAssemblies (assemblies, assembly, exceptions);

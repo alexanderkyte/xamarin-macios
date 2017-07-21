@@ -61,6 +61,7 @@ Copyright (C) 2013-2014 Xamarin. All rights reserved.
 		<XamMacResourcePrefix Condition="'$(XamMacResourcePrefix)' == ''">$(MonoMacResourcePrefix)</XamMacResourcePrefix>
 		<IsAppExtension Condition="'$(IsAppExtension)' == ''">False</IsAppExtension>
 		<EnableSGenConc Condition="'$(EnableSGenConc)' == ''">false</EnableSGenConc>
+		<EnableDedup Condition="'$(EnableDedup)' == ''">false</EnableDedup>
 		<AotScope Condition="'$(AotScope)' == ''">None</AotScope>
 	</PropertyGroup>
 
