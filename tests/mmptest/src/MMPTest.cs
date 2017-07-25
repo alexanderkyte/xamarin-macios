@@ -471,6 +471,19 @@ namespace Xamarin.MMP.Tests
 		}
 
 		[Test]
+		public void Unified_Dedup_Test ()
+		{
+			RunMMPTest (tmpDir => {
+				Console.WriteLine ("Before run test");
+				TI.UnifiedTestConfig test = new TI.UnifiedTestConfig (tmpDir) {
+					CSProjConfig = "<EnableDedup>true</EnableDedup>"
+				};
+				TI.TestUnifiedExecutable (test);
+				Console.WriteLine ("After run test");
+			});
+		}
+
+		[Test]
 		public void Unified_ShouldGenerateMachineConfigInBundle_WithEmptyOption ()
 		{
 			RunMMPTest (tmpDir => {

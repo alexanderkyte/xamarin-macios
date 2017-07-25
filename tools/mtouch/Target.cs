@@ -52,6 +52,9 @@ namespace Xamarin.Bundler
 		CompilerFlags linker_flags;
 		NativeLinkTask link_task;
 
+		// The name to use for the dedup dummy module
+		public const string DedupDummyName = "DedupDummy";
+
 		// If the assemblies were symlinked.
 		public bool Symlinked;
 
@@ -313,17 +316,17 @@ namespace Xamarin.Bundler
 
 			try {
 				// Need a "container" AOT module for everything deduped
-				if (EnableDedup) {
-					DedupDummyDll = String.Format ("{0}.dll", DedupDummyName);
+				if (App.EnableDedup) {
+					var dedupDummyDll = String.Format ("{0}.dll", Target.DedupDummyName);
 
-					AssemblyName aName = new AssemblyName (DedupDummyName);
-					AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, AssemblyBuilderAccess.RunAndSave, this.ArchDirectory);
+					var aName = new System.Reflection.AssemblyName (Target.DedupDummyName);
+					var ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, System.Reflection.Emit.AssemblyBuilderAccess.RunAndSave, this.ArchDirectory);
 
 					// Make .dll file
-					ab.Save (DedupDummyDll);
+					ab.Save (dedupDummyDll);
 
 					// Add to list
-					var ad = ManifestResolver.Load (Path.Combine (this.ArchDirectory, DedupDummyDll));
+					var ad = ManifestResolver.Load (Path.Combine (this.ArchDirectory, dedupDummyDll));
 					var asm = new Assembly (this, ad);
 					asm.ComputeSatellites ();
 					this.Assemblies.Add (asm);

@@ -491,7 +491,7 @@ namespace Xamarin.Bundler
 			if (!app.UseDlsym (filename))
 				args.Append ("direct-pinvoke,");
 
-			if (EnableDedup) {
+			if (app.EnableDedup) {
 				// In dedup mode, we can either be emitting the
 				// AOT modules that are having methods deduped *out* of them
 				// or we can emit the container/dummy AOT module that has the methods
@@ -567,7 +567,7 @@ namespace Xamarin.Bundler
 					var info = s.AssemblyDefinition.Name.Name;
 					info = EncodeAotSymbol (info);
 					assembly_externs.Append ("extern void *mono_aot_module_").Append (info).AppendLine ("_info;");
-					if (EnableDedup && info == Target.DedupDummyName)
+					if (app.EnableDedup && info == Target.DedupDummyName)
 						assembly_aot_modules.Append ("\tmono_aot_register_module_container (mono_aot_module_").Append (info).AppendLine ("_info);");
 					else
 						assembly_aot_modules.Append ("\tmono_aot_register_module (mono_aot_module_").Append (info).AppendLine ("_info);");

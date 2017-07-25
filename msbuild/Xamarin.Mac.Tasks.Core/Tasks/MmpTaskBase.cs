@@ -263,12 +263,14 @@ namespace Xamarin.Mac.Tasks
 		public override bool Execute ()
 		{
 			Log.LogTaskName ("Mmp");
+			Log.LogMessage ("foobar");
 			Log.LogTaskProperty ("AppBundleDir", AppBundleDir);
 			Log.LogTaskProperty ("ApplicationAssembly", ApplicationAssembly);
 			Log.LogTaskProperty ("ApplicationName", ApplicationName);
 			Log.LogTaskProperty ("Architecture", Architecture);
 			Log.LogTaskProperty ("ArchiveSymbols", ArchiveSymbols);
 			Log.LogTaskProperty ("Debug", Debug);
+			Log.LogTaskProperty ("EnableDedup", EnableDedup);
 			Log.LogTaskProperty ("EnableSGenConc", EnableSGenConc);
 			Log.LogTaskProperty ("ExplicitReferences", ExplicitReferences);
 			Log.LogTaskProperty ("ExtraArguments", ExtraArguments);

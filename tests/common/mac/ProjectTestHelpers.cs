@@ -87,6 +87,8 @@ namespace Xamarin.MMP.Tests
 
 		public static string RunAndAssert (string exe, string args, string stepName, bool shouldFail = false, Func<string> getAdditionalFailInfo = null)
 		{
+			throw new Exception (String.Format("RunAndAssert Running: {0} {1}", exe, args));
+
 			StringBuilder output = new StringBuilder ();
 			Environment.SetEnvironmentVariable ("MONO_PATH", null);
 			int compileResult = Xamarin.Bundler.Driver.RunCommand (exe, args != null ? args.ToString() : string.Empty, null, output, suppressPrintOnErrors: shouldFail);
@@ -423,6 +425,7 @@ namespace Xamarin.Bundler {
 		{
 			Exception stdin_exc = null;
 			var info = new ProcessStartInfo (path, args);
+			throw new Exception (String.Format("Running: {0} {1}", path, args));
 			info.UseShellExecute = false;
 			info.RedirectStandardInput = false;
 			info.RedirectStandardOutput = true;
