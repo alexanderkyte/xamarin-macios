@@ -772,6 +772,28 @@ namespace Xamarin.Bundler {
 			CreateDirectoriesIfNeeded ();
 			Watch ("Setup", 1);
 
+			if (App.EnableDedup) {
+					var dedupDummyDll = String.Format ("{0}.dll", Xamarin.Bundler.Target.DedupDummyName);
+
+					var aName = new System.Reflection.AssemblyName (Xamarin.Bundler.Target.DedupDummyName);
+					var ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, System.Reflection.Emit.AssemblyBuilderAccess.RunAndSave, output_dir);
+
+					// Make .dll file
+					ab.Save (dedupDummyDll);
+
+					resolved_assemblies.Add (Path.Combine (output_dir, dedupDummyDll));
+
+					// Add to list
+					//var ad = BuildTarget.Resolver.AddAssembly (Path.Combine (output_dir, dedupDummyDll));
+					//var ad = BuildTarget.Resolver.AddAssembly (dedupDummyDll);
+					//var asm = new Assembly (BuildTarget, ad);
+					//asm.ComputeSatellites ();
+					Console.WriteLine ("Added dummy assembly ", dedupDummyDll);
+					//BuildTarget.Assemblies.Add (asm);
+
+					Watch ("Make Dedup Assembly", 1);
+			}
+
 			if (!no_executable) {
 				BuildTarget.Resolver.FrameworkDirectory = fx_dir;
 				BuildTarget.Resolver.RootDirectory = Path.GetDirectoryName (Path.GetFullPath (root_assembly));
@@ -868,7 +890,11 @@ namespace Xamarin.Bundler {
 				else
 					throw ErrorHelper.CreateError (0099, "Internal error \"AOT with unexpected profile.\" Please file a bug report with a test case (http://bugzilla.xamarin.com).");
 
-				AOTCompiler compiler = new AOTCompiler (aotOptions, compilerType, IsUnifiedMobile, !EnableDebug);
+				string dedupDummyDll = null;
+				if (App.EnableDedup)
+					dedupDummyDll = Path.Combine (output_dir, String.Format ("{0}.dll", Xamarin.Bundler.Target.DedupDummyName));
+
+				AOTCompiler compiler = new AOTCompiler (aotOptions, compilerType, IsUnifiedMobile, !EnableDebug, dedupDummyDll);
 				compiler.Compile (mmp_dir);
 				Watch ("AOT Compile", 1);
 			}

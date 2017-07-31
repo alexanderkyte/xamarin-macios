@@ -52,9 +52,6 @@ namespace Xamarin.Bundler
 		CompilerFlags linker_flags;
 		NativeLinkTask link_task;
 
-		// The name to use for the dedup dummy module
-		public const string DedupDummyName = "DedupDummy";
-
 		// If the assemblies were symlinked.
 		public bool Symlinked;
 

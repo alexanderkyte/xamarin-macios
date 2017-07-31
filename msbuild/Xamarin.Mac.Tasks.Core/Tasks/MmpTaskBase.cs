@@ -165,6 +165,9 @@ namespace Xamarin.Mac.Tasks
 			if (EnableSGenConc)
 				args.Add ("/sgen-conc");
 
+			if (EnableDedup)
+				args.Add ("/dedup-aot");
+
 			switch ((LinkMode ?? string.Empty).ToLower ()) {
 			case "full":
 				break;
@@ -263,7 +266,6 @@ namespace Xamarin.Mac.Tasks
 		public override bool Execute ()
 		{
 			Log.LogTaskName ("Mmp");
-			Log.LogMessage ("foobar");
 			Log.LogTaskProperty ("AppBundleDir", AppBundleDir);
 			Log.LogTaskProperty ("ApplicationAssembly", ApplicationAssembly);
 			Log.LogTaskProperty ("ApplicationName", ApplicationName);

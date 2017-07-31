@@ -56,6 +56,9 @@ namespace Xamarin.Bundler {
 		public bool Is64Build { get { return Driver.Is64Bit; } }
 #endif
 
+		// The name to use for the dedup dummy module
+		public const string DedupDummyName = "DedupDummy";
+
 		public Target (Application app)
 		{
 			this.App = app;

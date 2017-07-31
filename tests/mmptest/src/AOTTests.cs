@@ -45,6 +45,18 @@ namespace Xamarin.MMP.Tests
 		}
 
 		[Test]
+		public void AOT_DedupSmokeTest () {
+			RunMMPTest (tmpDir => {
+				TI.UnifiedTestConfig test = new TI.UnifiedTestConfig (tmpDir) {
+					CSProjConfig = String.Format ("\t{0}\n\t{1}", AOTTestBaseConfig, "<EnableDedup>true</EnableDedup>")
+				};
+				string buildResults = TI.TestUnifiedExecutable (test).BuildOutput;
+
+				ValidateAOTStatus (tmpDir, f => ShouldBaseFilesBeAOT (f), buildResults);
+			});
+		}
+
+		[Test]
 		public void AOT_32Bit_SmokeTest ()
 		{
 			RunMMPTest (tmpDir => {

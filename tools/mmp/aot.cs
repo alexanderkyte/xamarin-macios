@@ -185,13 +185,18 @@ namespace Xamarin.Bundler {
 		AOTCompilerType compilerType;
 		bool IsRelease;
 		bool IsModern;
+		string DedupFile;
 
-		public AOTCompiler (AOTOptions options, AOTCompilerType compilerType, bool isModern, bool isRelease)
+		public AOTCompiler (AOTOptions options, AOTCompilerType compilerType, bool isModern, bool isRelease): this (options, compilerType, isModern, isRelease, null)
+		{ }
+
+		public AOTCompiler (AOTOptions options, AOTCompilerType compilerType, bool isModern, bool isRelease, string dedupFile)
 		{
 			this.options = options;
 			this.compilerType = compilerType;
 			this.IsModern = isModern;
 			this.IsRelease = isRelease;
+			this.DedupFile = dedupFile;
 		}
 
 		public void Compile (string path)
@@ -207,8 +212,17 @@ namespace Xamarin.Bundler {
 			var monoEnv = new string [] {"MONO_PATH", files.RootDir };
 
 			List<string> filesToAOT = GetFilesToAOT (files);
+			if (this.DedupFile != null)
+				filesToAOT.Add (this.DedupFile);
+
 			Parallel.ForEach (filesToAOT, ParallelOptions, file => {
-				string command = String.Format ("--aot{0} {1}{2}", options.IsHybridAOT ? "=hybrid" : "", IsModern ? "--runtime=mobile " : "", StringUtils.Quote (file));
+				string dedup_aot_arg = "";
+				if (file == this.DedupFile)
+					dedup_aot_arg = String.Format ("dedup-include={0}", this.DedupFile);
+				else if (this.DedupFile != null)
+					dedup_aot_arg = "dedup";
+
+				string command = String.Format ("--aot{0}{3} {1}{2}", options.IsHybridAOT ? "=hybrid," : "=", IsModern ? "--runtime=mobile " : "", StringUtils.Quote (file), dedup_aot_arg);
 				if (RunCommand (MonoPath, command, monoEnv) != 0)
 					throw ErrorHelper.CreateError (3001, "Could not AOT the assembly '{0}'", file);
 			});
