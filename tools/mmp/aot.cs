@@ -91,6 +91,11 @@ namespace Xamarin.Bundler {
 		public List <string> IncludedAssemblies { get; private set; } = new List <string> ();
 		public List <string> ExcludedAssemblies { get; private set; } = new List <string> ();
 
+		// The filename (last part of path) for the assembly file that is the dedup file
+		// Note: this code isn't shared, and there currently isn't a way to surface dedup stuff with dynamic linking
+		//
+		public string Dedup;
+
 		public AOTOptions (string options)
 		{
 			// Syntax - all,core,sdk,none or "" if explicit then optional list of +/-'ed assemblies
@@ -204,14 +209,43 @@ namespace Xamarin.Bundler {
 			if (!options.IsAOT)
 				throw ErrorHelper.CreateError (0099, "Internal error \"AOTBundle with aot: {0}\" Please file a bug report with a test case (http://bugzilla.xamarin.com).", options.CompilationType);
 
+			// Relies on the files enumerator being lazy on the directory
+			// contents, so adding a file is seen there.
+			//if (options.Dedup != null && files.Files.Count () > 0)
+				//InitDedup (files.RootDir);
+
 			var monoEnv = new string [] {"MONO_PATH", files.RootDir };
 
 			List<string> filesToAOT = GetFilesToAOT (files);
+
 			Parallel.ForEach (filesToAOT, ParallelOptions, file => {
-				string command = String.Format ("--aot{0} {1}{2}", options.IsHybridAOT ? "=hybrid" : "", IsModern ? "--runtime=mobile " : "", StringUtils.Quote (file));
+				var aotArgs = new List<string> ();
+
+				if (options.IsHybridAOT)
+					aotArgs.Add ("hybrid");
+
+				if (options.Dedup != null && options.Dedup != file)
+					aotArgs.Add ("dedup");
+
+				string aotArg = "--aot";
+				if (aotArgs.Count > 0)
+					aotArg = String.Format ("--aot={0}", string.Join (",", aotArgs));
+
+				string command = String.Format ("{0} {1}{2}", aotArg, IsModern ? "--runtime=mobile " : "", StringUtils.Quote (file));
 				if (RunCommand (MonoPath, command, monoEnv) != 0)
 					throw ErrorHelper.CreateError (3001, "Could not AOT the assembly '{0}'", file);
 			});
+
+			if (options.Dedup != null) {
+				var quoted = new List<string> (filesToAOT.Count ());
+				for (int i=0; i < filesToAOT.Count (); i++)
+					quoted.Add (StringUtils.Quote (filesToAOT [i]));
+
+				string assemblies = string.Join (" ", quoted);
+				string command = String.Format ("--aot={0}dedup-include={1} {2}", options.IsHybridAOT ? "hybrid," : "", options.Dedup, assemblies);
+				if (RunCommand (MonoPath, command, monoEnv) != 0)
+					throw ErrorHelper.CreateError (3001, "Could not emit dedup AOT file!");
+			}
 
 			if (IsRelease && options.IsHybridAOT) {
 				Parallel.ForEach (filesToAOT, ParallelOptions, file => {
@@ -234,12 +268,14 @@ namespace Xamarin.Bundler {
 		{
 			// Make a dictionary of included/excluded files to track if we've missed some at the end
 			Dictionary <string, bool> includedAssemblies = new Dictionary <string, bool> ();
-			foreach (var item in options.IncludedAssemblies)
+			foreach (var item in options.IncludedAssemblies) {
 				includedAssemblies [item] = false;
+			}
 
 			Dictionary <string, bool> excludedAssemblies = new Dictionary <string, bool> ();
-			foreach (var item in options.ExcludedAssemblies)
+			foreach (var item in options.ExcludedAssemblies) {
 				excludedAssemblies [item] = false;
+			}
 
 			var aotFiles = new List<string> ();
 

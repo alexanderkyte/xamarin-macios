@@ -874,6 +874,17 @@ namespace Xamarin.Bundler {
 				else
 					throw ErrorHelper.CreateError (0099, "Internal error \"AOT with unexpected profile.\" Please file a bug report with a test case (http://bugzilla.xamarin.com).");
 
+				//if (App.EnableDedup) {
+				var dedupDummyDll = String.Format ("{0}.dll", Target.DedupDummyName);
+				var dummyPath = Path.Combine (mmp_dir, Target.DedupDummyName);
+
+				// Make empty .dll file
+				var aName = new System.Reflection.AssemblyName (Target.DedupDummyName);
+				var ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, System.Reflection.Emit.AssemblyBuilderAccess.RunAndSave, mmp_dir);
+				ab.Save (dedupDummyDll);
+				aotOptions.Dedup = dedupDummyDll;
+				//}
+
 				AOTCompiler compiler = new AOTCompiler (aotOptions, compilerType, IsUnifiedMobile, !EnableDebug);
 				compiler.Compile (mmp_dir);
 				Watch ("AOT Compile", 1);

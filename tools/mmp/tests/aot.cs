@@ -93,7 +93,6 @@ namespace Xamarin.MMP.Tests.Unit
 				if (dedup && argParts [0].Contains ("dedup-include"))
 					continue;
 
-				Console.WriteLine ("dedup is {0}", dedup);
 				if (kind == AOTKind.Hybrid && !dedup)
 					Assert.AreEqual (argParts[0], "--aot=hybrid", "First arg should be --aot=hybrid");
 				else if (!dedup)
@@ -152,13 +151,10 @@ namespace Xamarin.MMP.Tests.Unit
 		void AssertDedupFile (string dedupFile)
 		{
 			foreach (var command in commandsRun) {
-				Console.WriteLine ("{0} {1}", command.Item1, command.Item2);
 				if (command.Item2.Contains (dedupFile)) {
-					Console.WriteLine ("{0} contains {1}", command.Item2, dedupFile);
 					Assert.IsTrue (command.Item2.Contains (String.Format ("dedup-include={0}", dedupFile)));
 					return;
 				}
-				Console.WriteLine ("{0} does not contain {1}", command.Item2, dedupFile);
 			}
 			Assert.Fail ("Didn't have dedup container");
 		}
