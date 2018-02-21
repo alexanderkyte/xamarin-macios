@@ -78,7 +78,7 @@ namespace Xamarin.MMP.Tests.Unit
 			}
 		}
 
-		List<string> GetFiledAOTed (AOTCompilerType compilerType = AOTCompilerType.Bundled64, AOTKind kind = AOTKind.Standard, bool isModern = false, bool expectStripping = false, bool expectSymbolDeletion = false)
+		List<string> GetFiledAOTed (AOTCompilerType compilerType = AOTCompilerType.Bundled64, AOTKind kind = AOTKind.Standard, bool isModern = false, bool expectStripping = false, bool expectSymbolDeletion = false, bool dedup = false)
 		{
 			List<string> filesAOTed = new List<string> (); 
 
@@ -90,16 +90,19 @@ namespace Xamarin.MMP.Tests.Unit
 				Assert.IsTrue (command.Item1.EndsWith (GetExpectedMonoCommand (compilerType)), "Unexpected command: " + command.Item1);
 				string [] argParts = command.Item2.Split (' ');
 
-				if (kind == AOTKind.Hybrid)
+				if (dedup && argParts [0].Contains ("dedup-include"))
+					continue;
+
+				Console.WriteLine ("dedup is {0}", dedup);
+				if (kind == AOTKind.Hybrid && !dedup)
 					Assert.AreEqual (argParts[0], "--aot=hybrid", "First arg should be --aot=hybrid");
-				else
+				else if (!dedup)
 					Assert.AreEqual (argParts[0], "--aot", "First arg should be --aot");
 
 				if (isModern)
 					Assert.AreEqual (argParts[1], "--runtime=mobile", "Second arg should be --runtime=mobile");
 				else
 					Assert.AreNotEqual (argParts[1], "--runtime=mobile", "Second arg should not be --runtime=mobile");
-
 
 				int fileNameBeginningIndex = command.Item2.IndexOf(' ') + 1;
 				if (isModern)
@@ -146,9 +149,23 @@ namespace Xamarin.MMP.Tests.Unit
 			Assert.IsTrue (symbolsDeleted.All (x => expectedFiles.Contains (x)), "Different files deleted than expected: "  + getErrorDetails ());
 		}
 
-		void AssertFilesAOTed (IEnumerable <string> expectedFiles, AOTCompilerType compilerType = AOTCompilerType.Bundled64, AOTKind kind = AOTKind.Standard, bool isModern = false, bool expectStripping = false, bool expectSymbolDeletion = false)
+		void AssertDedupFile (string dedupFile)
 		{
-			List<string> filesAOTed = GetFiledAOTed (compilerType, kind, isModern: isModern, expectStripping: expectStripping, expectSymbolDeletion : expectSymbolDeletion);
+			foreach (var command in commandsRun) {
+				Console.WriteLine ("{0} {1}", command.Item1, command.Item2);
+				if (command.Item2.Contains (dedupFile)) {
+					Console.WriteLine ("{0} contains {1}", command.Item2, dedupFile);
+					Assert.IsTrue (command.Item2.Contains (String.Format ("dedup-include={0}", dedupFile)));
+					return;
+				}
+				Console.WriteLine ("{0} does not contain {1}", command.Item2, dedupFile);
+			}
+			Assert.Fail ("Didn't have dedup container");
+		}
+
+		void AssertFilesAOTed (IEnumerable <string> expectedFiles, AOTCompilerType compilerType = AOTCompilerType.Bundled64, AOTKind kind = AOTKind.Standard, bool isModern = false, bool expectStripping = false, bool expectSymbolDeletion = false, bool dedup = false)
+		{
+			List<string> filesAOTed = GetFiledAOTed (compilerType, kind, isModern: isModern, expectStripping: expectStripping, expectSymbolDeletion : expectSymbolDeletion, dedup : dedup);
 
 			Func<string> getErrorDetails = () => $"\n {FormatDebugList (filesAOTed)} \nvs\n {FormatDebugList (expectedFiles)}\n{AllCommandsRun}";
 
@@ -434,6 +451,28 @@ namespace Xamarin.MMP.Tests.Unit
 
 			var expectedFiles = FullAppFileList.Where (x => x.EndsWith (".exe") || x.EndsWith (".dll"));
 			AssertFilesAOTed (expectedFiles, isModern : true);
+		}
+
+		[Test]
+		public void Dedup ()
+		{
+			var dummyName = "DedupDummy";
+			var dedupDummyDll = String.Format ("{0}.dll", dummyName);
+
+			// Make empty .dll file
+			//var aName = new System.Reflection.AssemblyName (dummyName);
+			//var ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, System.Reflection.Emit.AssemblyBuilderAccess.RunAndSave, "");
+			//ab.Save (dedupDummyDll);
+
+			var options = new AOTOptions ("all");
+			options.Dedup = dedupDummyDll;
+			Assert.NotNull (options.Dedup, "Dedup should be set");
+
+			Compile (options, new TestFileEnumerator (FullAppFileList));
+
+			var expectedFiles = FullAppFileList.Where (x => x.EndsWith (".exe") || x.EndsWith (".dll"));
+			AssertFilesAOTed (expectedFiles, dedup: true);
+			AssertDedupFile (dedupDummyDll);
 		}
 	}
 }
