@@ -444,7 +444,7 @@ namespace Xamarin.Bundler
 			}
 		}
 
-		public static string GetAotArguments (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile)
+		public static StringBuilder GetAotOptions (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile, bool dedup)
 		{
 			string fname = Path.GetFileName (filename);
 			StringBuilder args = new StringBuilder ();
@@ -492,7 +492,7 @@ namespace Xamarin.Bundler
 			if (!app.UseDlsym (filename))
 				args.Append ("direct-pinvoke,");
 
-			if (EnableDedup) {
+			if (app.EnableDedup) {
 				// In dedup mode, we can either be emitting the
 				// AOT modules that are having methods deduped *out* of them
 				// or we can emit the container/dummy AOT module that has the methods
@@ -500,7 +500,7 @@ namespace Xamarin.Bundler
 				if (aname == Target.DedupDummyName)
 					args.Append (String.Format("dedup-include={0},", Target.DedupDummyName));
 				else
-					args.Append ("dedup,");
+					args.Append ("dedup-skip,");
 			}
 
 			if (app.EnableMSym) {
@@ -517,8 +517,8 @@ namespace Xamarin.Bundler
 				args.Append (",");
 			if (enable_llvm)
 				args.Append ("llvm-outfile=").Append (StringUtils.Quote (llvmOutputFile));
-			args.Append (" \"").Append (filename).Append ("\"");
-			return args.ToString ();
+
+			return args;
 		}
 
 		public static ProcessStartInfo CreateStartInfo (Application app, string file_name, string arguments, string mono_path, string mono_debug = null)
@@ -568,7 +568,7 @@ namespace Xamarin.Bundler
 					var info = s.AssemblyDefinition.Name.Name;
 					info = EncodeAotSymbol (info);
 					assembly_externs.Append ("extern void *mono_aot_module_").Append (info).AppendLine ("_info;");
-					if (EnableDedup && info == Target.DedupDummyName)
+					if (app.EnableDedup && info == Target.DedupDummyName)
 						assembly_aot_modules.Append ("\tmono_aot_register_module_container (mono_aot_module_").Append (info).AppendLine ("_info);");
 					else
 						assembly_aot_modules.Append ("\tmono_aot_register_module (mono_aot_module_").Append (info).AppendLine ("_info);");

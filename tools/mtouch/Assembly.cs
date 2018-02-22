@@ -34,6 +34,12 @@ namespace Xamarin.Bundler {
 		public string BuildTargetName;
 		public bool IsCodeShared;
 
+		public bool IsDedupDummy {
+			get {
+				return Target.DedupDummyName == Identity;
+			}
+		}
+
 		public Dictionary<Abi, AotInfo> AotInfos = new Dictionary<Abi, AotInfo> ();
 
 		HashSet<string> dependency_map;
@@ -270,7 +276,20 @@ namespace Xamarin.Bundler {
 			aotInfo.AotDataFiles.Add (data);
 
 			var aotCompiler = Driver.GetAotCompiler (App, Target.Is64Build);
-			var aotArgs = Driver.GetAotArguments (App, assembly_path, abi, build_dir, asm_output, llvm_aot_ofile, data);
+			var aotOpts = Driver.GetAotOptions (App, assembly_path, abi, build_dir, asm_output, llvm_aot_ofile, data, IsDedupDummy);
+
+			// Dedup assembly gets 
+			if (IsDedupDummy) {
+				foreach (var assm in Target.Assemblies)
+					if (assm != this)
+						aotOpts.Append (" \"").Append (assm.FullPath).Append ("\"");
+			} else {
+				aotOpts.Append (" \"").Append (assembly_path).Append ("\"");
+			}
+
+			var aotArgs = aotOpts.ToString ();
+			Console.WriteLine ("AotArgs: {0}", aotArgs);
+
 			var task = new AOTTask
 			{
 				Assembly = this,

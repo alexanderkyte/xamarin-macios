@@ -317,26 +317,10 @@ namespace Xamarin.Bundler
 			}
 
 			try {
-				// Need a "container" AOT module for everything deduped
-				if (EnableDedup) {
-					DedupDummyDll = String.Format ("{0}.dll", DedupDummyName);
-
-					AssemblyName aName = new AssemblyName (DedupDummyName);
-					AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, AssemblyBuilderAccess.RunAndSave, this.ArchDirectory);
-
-					// Make .dll file
-					ab.Save (DedupDummyDll);
-
-					// Add to list
-					var ad = ManifestResolver.Load (Path.Combine (this.ArchDirectory, DedupDummyDll));
-					var asm = new Assembly (this, ad);
-					asm.ComputeSatellites ();
-					this.Assemblies.Add (asm);
-				}
-					
 				foreach (var root in App.RootAssemblies) {
 					var assembly = ManifestResolver.Load (root);
 					ComputeListOfAssemblies (assemblies, assembly, exceptions);
+					Console.WriteLine ("Processed {0}", root);
 				}
 			} catch (MonoTouchException mte) {
 				exceptions.Add (mte);
@@ -477,11 +461,16 @@ namespace Xamarin.Bundler
 			resolver.AddSearchDirectory (Resolver.FrameworkDirectory);
 
 			var main_assemblies = new List<AssemblyDefinition> ();
-			foreach (var root in App.RootAssemblies)
+			foreach (var root in App.RootAssemblies) {
 				main_assemblies.Add (Resolver.Load (root));
+				Console.WriteLine ("Added root as {0}", root);
+			}
+
 			foreach (var appex in sharedCodeTargets) {
-				foreach (var root in appex.App.RootAssemblies)
+				foreach (var root in appex.App.RootAssemblies) {
 					main_assemblies.Add (Resolver.Load (root));
+					Console.WriteLine ("Added root as {0}", root);
+				}
 			}
 			
 			if (Driver.Verbosity > 0)
@@ -639,12 +628,22 @@ namespace Xamarin.Bundler
 					                               $"The linker output contains more than one assemblies named '{group.Key}':\n\t{string.Join ("\n\t", group.Select ((v) => v.MainModule.FileName).ToArray ())}");
 			}
 
+			Assembly dummy = null;
+			foreach (var a in Assemblies)
+				if (a.IsDedupDummy) {
+					Console.WriteLine ("DUmmy is {0}", a);
+					dummy = a;
+				} else 
+					Console.WriteLine ("DUmmy is not {0}", a);
+
 			// Update (add/remove) list of assemblies in each app, since the linker may have both added and removed assemblies.
 			// The logic for updating assemblies when doing code-sharing is not equivalent to when we're not code sharing
 			// (in particular code sharing is not supported when there are xml linker definitions), so we need
 			// to maintain two paths here.
 			if (sharingTargets.Count == 0) {
 				Assemblies.Update (this, output_assemblies);
+				if (dummy != null)
+					Assemblies.Add (dummy);
 			} else {
 				// For added assemblies we have to determine exactly which apps need which assemblies.
 				// Code sharing is only allowed if there are no linker xml definitions, nor any I18N values, which means that
@@ -652,6 +651,10 @@ namespace Xamarin.Bundler
 				foreach (var t in allTargets) {
 					// Find the root assembly
 					// Here we assume that 'AssemblyReference.Name' == 'Assembly.Identity'.
+
+					if (dummy != null)
+						t.Assemblies.Add (dummy);
+
 					var rootAssemblies = new List<Assembly> ();
 					foreach (var root in t.App.RootAssemblies)
 						rootAssemblies.Add (t.Assemblies [Assembly.GetIdentity (root)]);
@@ -682,6 +685,12 @@ namespace Xamarin.Bundler
 					// And make sure every Target's assembly resolver knows about all the assemblies.
 					foreach (var asm in t.Assemblies)
 						t.Resolver.Add (asm.AssemblyDefinition);
+
+			//foreach (var a in Assemblies)
+				//if (a.IsDedupDummy)
+					//output_assemblies.Add (a);
+
+
 				}
 
 				// If any of the appex'es build to a grouped SDK framework, then we must ensure that all SDK assemblies
@@ -799,7 +808,6 @@ namespace Xamarin.Bundler
 			//   image don't match - if we overwrite in-place we lose the original assembly and
 			//   its GUID).
 			// 
-
 			LinkDirectory = Path.Combine (ArchDirectory, "Link");
 			if (!Directory.Exists (LinkDirectory))
 				Directory.CreateDirectory (LinkDirectory);
@@ -819,7 +827,33 @@ namespace Xamarin.Bundler
 
 			ManagedLink ();
 
+			if (App.EnableDedup)
+				GenerateDedup ();
+
 			GatherFrameworks ();
+		}
+
+		public void GenerateDedup ()
+		{
+			var dedupDummyDll = String.Format ("{0}.dll", DedupDummyName);
+			// Make available for the AOT compiler
+			var dllPath = Path.Combine (BuildDirectory, dedupDummyDll);
+
+			// Qualified because of collisions with cecil
+			var aName = new System.Reflection.AssemblyName (DedupDummyName);
+			var ab = AppDomain.CurrentDomain.DefineDynamicAssembly (aName, System.Reflection.Emit.AssemblyBuilderAccess.RunAndSave, BuildDirectory);
+
+			// Make .dll file
+			ab.Save (dedupDummyDll);
+			Console.WriteLine ("Emitted {0}", dllPath);
+
+			// Add to list
+			var ad = ManifestResolver.Load (dllPath);
+			var asm = new Assembly (this, ad);
+			Assemblies.Add (asm);
+			Console.WriteLine ("Added {0}", asm);
+			if (!asm.IsDedupDummy)
+				throw new Exception ("IsDedupDummy check broken");
 		}
 
 		public void CompilePInvokeWrappers ()
@@ -896,6 +930,7 @@ namespace Xamarin.Bundler
 
 			// Here we create the tasks to run the AOT compiler.
 			foreach (var a in Assemblies) {
+				Console.WriteLine ("Making task for {0}", a);
 				foreach (var abi in GetArchitectures (a.BuildTarget)) {
 					a.CreateAOTTask (abi);
 				}

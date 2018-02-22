@@ -191,9 +191,27 @@ namespace Xamarin.Bundler
 			}
 		}
 
+		IEnumerable<Assembly> InputAssemblies {
+			get {
+				var accum = new List<Assembly>();
+				accum.Add (Assembly);
+
+				if (Assembly.IsDedupDummy) {
+					// The dedup assembly AOT emits a file with
+					// the name of DedupAssembly so the output
+					// is the same, but the input is now every assembly
+					accum.Union (Assembly.Target.Assemblies);
+				}
+
+				Console.WriteLine ("InputAssemblies {0}", string.Join (", ", accum.Select ((v) => v.FullPath)));
+
+				return accum;
+			}
+		}
+
 		public override IEnumerable<string> Inputs {
 			get {
-				yield return Assembly.FullPath;
+				return InputAssemblies.Select ((v) => v.FullPath);
 			}
 		}
 
@@ -201,19 +219,21 @@ namespace Xamarin.Bundler
 			get {
 				if (inputs == null) {
 					inputs = new List<string> ();
-					if (Assembly.HasDependencyMap)
-						inputs.AddRange (Assembly.DependencyMap);
-					inputs.Add (AssemblyName);
-					inputs.Add (Driver.GetAotCompiler (Assembly.App, Assembly.Target.Is64Build));
-					var mdb = Assembly.FullPath + ".mdb";
-					if (File.Exists (mdb))
-						inputs.Add (mdb);
-					var pdb = Path.ChangeExtension (Assembly.FullPath, ".pdb");
-					if (File.Exists (pdb))
-						inputs.Add (pdb);
-					var config = Assembly.FullPath + ".config";
-					if (File.Exists (config))
-						inputs.Add (config);
+					foreach (var ass_dep in InputAssemblies) {
+						if (ass_dep.HasDependencyMap)
+							inputs.AddRange (ass_dep.DependencyMap);
+						inputs.Add (ass_dep.FullPath);
+						inputs.Add (Driver.GetAotCompiler (ass_dep.App, ass_dep.Target.Is64Build));
+						var mdb = ass_dep.FullPath + ".mdb";
+						if (File.Exists (mdb))
+							inputs.Add (mdb);
+						var pdb = Path.ChangeExtension (ass_dep.FullPath, ".pdb");
+						if (File.Exists (pdb))
+							inputs.Add (pdb);
+						var config = ass_dep.FullPath + ".config";
+						if (File.Exists (config))
+							inputs.Add (config);
+					}
 				}
 				return inputs;
 			}
@@ -221,6 +241,9 @@ namespace Xamarin.Bundler
 
 		public override bool IsUptodate {
 			get {
+				if (Assembly.IsDedupDummy)
+					return false;
+
 				// We can only check dependencies if we know the assemblies this assembly depend on (otherwise always rebuild).
 				return Assembly.HasDependencyMap && base.IsUptodate;
 			}

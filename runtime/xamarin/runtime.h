@@ -256,6 +256,7 @@ MonoAssembly * xamarin_open_assembly (const char *name);
 
 #if defined(__arm__) || defined(__aarch64__)
 void mono_aot_register_module (void *aot_info);
+void mono_aot_register_module_container (void *aot_info);
 #endif
 
 typedef void (*xamarin_register_module_callback) ();
