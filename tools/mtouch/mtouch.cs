@@ -498,7 +498,7 @@ namespace Xamarin.Bundler
 				// or we can emit the container/dummy AOT module that has the methods
 				// deduped *into* them.
 				if (aname == Target.DedupDummyName)
-					args.Append (String.Format("dedup-include={0},", Target.DedupDummyName));
+					args.Append (String.Format("dedup-include={0},", fname));
 				else
 					args.Append ("dedup-skip,");
 			}
