@@ -1083,7 +1083,7 @@ namespace Xamarin.Bundler
 						// dedups. This is necssary because the wrappers for pinvokes and other native references
 						// made in these assemblies will end up in the dedup module.
 						foreach (var dep in Assemblies)
-							if (dep.Deduped && dep != a)
+							if (App.EnableDedup && dep != a)
 								LinkerDependsCollect (dep, compiler_flags, tmp_link_deps);
 
 						link_dependencies.AddRange (tmp_link_deps.Distinct ().ToList ());

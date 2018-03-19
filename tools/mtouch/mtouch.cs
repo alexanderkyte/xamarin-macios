@@ -444,7 +444,7 @@ namespace Xamarin.Bundler
 			}
 		}
 
-		public static StringBuilder GetAotOptions (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile, bool do_dedup)
+		public static StringBuilder GetAotOptions (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile, bool dedup_dummy)
 		{
 			string fname = Path.GetFileName (filename);
 			StringBuilder args = new StringBuilder ();
@@ -492,12 +492,12 @@ namespace Xamarin.Bundler
 			if (!app.UseDlsym (filename))
 				args.Append ("direct-pinvoke,");
 
-			if (do_dedup) {
+			if (app.EnableDedup) {
 				// In dedup mode, we can either be emitting the
 				// AOT modules that are having methods deduped *out* of them
 				// or we can emit the container/dummy AOT module that has the methods
 				// deduped *into* them.
-				if (aname == Target.DedupDummyName)
+				if (dedup_dummy)
 					args.Append (String.Format("dedup-include={0},", fname));
 				else
 					args.Append ("dedup-skip,");
