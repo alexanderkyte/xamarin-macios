@@ -444,7 +444,7 @@ namespace Xamarin.Bundler
 			}
 		}
 
-		public static StringBuilder GetAotOptions (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile, bool dedup)
+		public static StringBuilder GetAotOptions (Application app, string filename, Abi abi, string outputDir, string outputFile, string llvmOutputFile, string dataFile, bool do_dedup)
 		{
 			string fname = Path.GetFileName (filename);
 			StringBuilder args = new StringBuilder ();
@@ -492,7 +492,7 @@ namespace Xamarin.Bundler
 			if (!app.UseDlsym (filename))
 				args.Append ("direct-pinvoke,");
 
-			if (app.EnableDedup) {
+			if (do_dedup) {
 				// In dedup mode, we can either be emitting the
 				// AOT modules that are having methods deduped *out* of them
 				// or we can emit the container/dummy AOT module that has the methods
@@ -568,10 +568,7 @@ namespace Xamarin.Bundler
 					var info = s.AssemblyDefinition.Name.Name;
 					info = EncodeAotSymbol (info);
 					assembly_externs.Append ("extern void *mono_aot_module_").Append (info).AppendLine ("_info;");
-					if (app.EnableDedup && info == Target.DedupDummyName)
-						assembly_aot_modules.Append ("\tmono_aot_register_module_container (mono_aot_module_").Append (info).AppendLine ("_info);");
-					else
-						assembly_aot_modules.Append ("\tmono_aot_register_module (mono_aot_module_").Append (info).AppendLine ("_info);");
+					assembly_aot_modules.Append ("\tmono_aot_register_module (mono_aot_module_").Append (info).AppendLine ("_info);");
 				}
 				string sname = s.FileName;
 				if (assembly_name != sname && IsBoundAssembly (s)) {

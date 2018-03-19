@@ -34,11 +34,19 @@ namespace Xamarin.Bundler {
 		public string BuildTargetName;
 		public bool IsCodeShared;
 
-		public bool IsDedupDummy {
+		public bool Deduped {
 			get {
-				return Target.DedupDummyName == Identity;
+				return App.EnableDedup && !HasLinkWithAttributes;
 			}
 		}
+
+		public bool IsDedupDummy {
+			get {
+				return App.EnableDedup && Target.DedupDummyName == Identity;
+			}
+		}
+
+		public List <Assembly> DedupTargets;
 
 		public Dictionary<Abi, AotInfo> AotInfos = new Dictionary<Abi, AotInfo> ();
 
@@ -276,12 +284,13 @@ namespace Xamarin.Bundler {
 			aotInfo.AotDataFiles.Add (data);
 
 			var aotCompiler = Driver.GetAotCompiler (App, Target.Is64Build);
-			var aotOpts = Driver.GetAotOptions (App, assembly_path, abi, build_dir, asm_output, llvm_aot_ofile, data, IsDedupDummy);
+			var aotOpts = Driver.GetAotOptions (App, assembly_path, abi, build_dir, asm_output, llvm_aot_ofile, data, Deduped);
 
 			if (IsDedupDummy) {
 				// Includes this Assembly
 				foreach (var assm in Target.Assemblies)
-					aotOpts.Append (" \"").Append (assm.FullPath).Append ("\"");
+					if (assm.Deduped)
+						aotOpts.Append (" \"").Append (assm.FullPath).Append ("\"");
 			} else {
 				aotOpts.Append (" \"").Append (assembly_path).Append ("\"");
 			}

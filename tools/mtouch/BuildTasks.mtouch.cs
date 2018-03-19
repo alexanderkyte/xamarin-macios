@@ -203,7 +203,7 @@ namespace Xamarin.Bundler
 					accum.Union (Assembly.Target.Assemblies);
 				}
 
-				Console.WriteLine ("InputAssemblies {0}", string.Join (", ", accum.Select ((v) => v.FullPath)));
+				Console.WriteLine ("InputAssemblies {1} :: {0}", string.Join (", ", accum.Select ((v) => v.FullPath)), Assembly);
 
 				return accum;
 			}
